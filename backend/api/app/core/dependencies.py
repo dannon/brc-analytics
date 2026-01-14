@@ -12,6 +12,7 @@ _cache_service = None
 _llm_service = None
 _ena_service = None
 _rate_limiter = None
+_catalog_search_service = None
 
 
 async def get_cache_service() -> CacheService:
@@ -74,6 +75,20 @@ async def check_rate_limit(request: Request) -> dict:
     return await rate_limiter.check(request)
 
 
+async def get_catalog_search_service():
+    """Dependency to get catalog search service singleton instance"""
+    global _catalog_search_service
+    if _catalog_search_service is None:
+        from app.services.catalog_search import CatalogSearchService
+
+        _catalog_search_service = CatalogSearchService()
+        available = _catalog_search_service.is_available()
+        logger.info(
+            f"Catalog search service initialized (singleton), available: {available}"
+        )
+    return _catalog_search_service
+
+
 def reset_cache_service() -> None:
     """Reset the global cache service instance (used during shutdown)"""
     global _cache_service
@@ -82,8 +97,14 @@ def reset_cache_service() -> None:
 
 def reset_all_services() -> None:
     """Reset all global service instances (used during shutdown)"""
-    global _cache_service, _llm_service, _ena_service, _rate_limiter
+    global \
+        _cache_service, \
+        _llm_service, \
+        _ena_service, \
+        _rate_limiter, \
+        _catalog_search_service
     _cache_service = None
     _llm_service = None
     _ena_service = None
     _rate_limiter = None
+    _catalog_search_service = None
