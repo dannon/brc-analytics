@@ -9,4 +9,8 @@ indent-style = "space"
 
 [lint]
 select = ["E", "F", "I", "B"]
+ignore = [
+    "B008",  # Allow Depends() in function defaults (FastAPI pattern)
+    "E501",  # Line too long - not enforced for readability in prompts/docstrings
+]
 fixable = ["ALL"]
