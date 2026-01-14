@@ -654,3 +654,94 @@ class CatalogSearchService:
             results=result["results"],
             filters_applied=search.filters,
         )
+
+    async def conversational_search(
+        self,
+        query: str,
+        message_history: list | None = None,
+        current_filters: list | None = None,
+    ) -> tuple[CatalogSearchResult, list]:
+        """
+        Search with conversation context for multi-turn refinement.
+
+        Args:
+            query: The user's query for this turn.
+            message_history: Previous messages from pydantic-ai (for context).
+            current_filters: Currently applied filters from previous turns.
+
+        Returns:
+            Tuple of (search result, updated message history).
+        """
+        if not self.is_available():
+            return (
+                CatalogSearchResult(
+                    success=False,
+                    total_count=0,
+                    results=[],
+                    filters_applied=[],
+                    message="Catalog search service not available",
+                ),
+                [],
+            )
+
+        try:
+            # Build context prompt with current state
+            context_parts = []
+
+            if current_filters:
+                filter_desc = ", ".join(
+                    f"{f['column']} {f['operator']} {f['value']}"
+                    for f in current_filters
+                )
+                context_parts.append(f"Current filters: {filter_desc}")
+
+            if context_parts:
+                context = "\n".join(context_parts)
+                augmented_query = f"{context}\n\nUser request: {query}"
+            else:
+                augmented_query = query
+
+            logger.info(f"Conversational search: {query}")
+            logger.info(
+                f"Message history length: {len(message_history) if message_history else 0}"
+            )
+
+            # Run the agent with message history for context
+            result = await self.agent.run(
+                augmented_query,
+                deps=self.deps,
+                message_history=message_history,
+            )
+            search_params = result.output
+
+            logger.info(f"Agent returned filters: {search_params.filters}")
+
+            # Execute the search
+            search_result = self.deps.execute_search(search_params)
+
+            # Get updated message history for next turn
+            new_history = result.all_messages()
+
+            return (
+                CatalogSearchResult(
+                    success=True,
+                    total_count=search_result["total_count"],
+                    results=search_result["results"],
+                    filters_applied=search_params.filters,
+                    message=f"Found {search_result['total_count']} assemblies",
+                ),
+                new_history,
+            )
+
+        except Exception as e:
+            logger.error(f"Conversational search failed: {e}")
+            return (
+                CatalogSearchResult(
+                    success=False,
+                    total_count=0,
+                    results=[],
+                    filters_applied=[],
+                    message=f"Search failed: {str(e)}",
+                ),
+                message_history or [],
+            )
