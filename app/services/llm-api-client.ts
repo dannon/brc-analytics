@@ -1,5 +1,7 @@
 import ky, { HTTPError } from "ky";
 import {
+  CatalogHealthResponse,
+  CatalogSearchResponse,
   DatasetSearchRequest,
   DatasetSearchResponse,
   UnifiedSearchRequest,
@@ -34,6 +36,30 @@ const apiClient = ky.create({
 });
 
 export const llmAPIClient = {
+  /**
+   * Conversational catalog search with multi-turn session support
+   * @param request - Catalog search parameters
+   * @param request.query - Natural language search query
+   * @param request.session_id - Optional session ID for multi-turn conversation
+   * @returns Promise resolving to search results and session info
+   */
+  catalogSearch: async (request: {
+    query: string;
+    session_id?: string;
+  }): Promise<CatalogSearchResponse> => {
+    return apiClient
+      .post("catalog/search/conversation", { json: request })
+      .json();
+  },
+
+  /**
+   * Check health status of catalog search service
+   * @returns Promise resolving to catalog health status
+   */
+  checkCatalogHealth: async (): Promise<CatalogHealthResponse> => {
+    return apiClient.get("catalog/health").json();
+  },
+
   /**
    * Check health status of LLM service
    * @returns Promise resolving to health status
