@@ -119,3 +119,55 @@ export interface UnifiedSearchResponse {
     recommended_workflows: WorkflowRecommendation[];
   } | null;
 }
+
+// Catalog search types
+export interface CatalogSearchFilter {
+  column: string;
+  operator: string;
+  value: string;
+}
+
+export interface CatalogAssembly {
+  accession: string;
+  chromosomes?: number;
+  commonName?: string;
+  coverage?: string;
+  gcPercent?: number;
+  geneModelUrl?: string;
+  isRef?: string;
+  length?: number;
+  level?: string;
+  ncbiTaxonomyId?: string;
+  ploidy?: string[];
+  scaffoldCount?: number;
+  scaffoldL50?: number;
+  scaffoldN50?: number;
+  strainName?: string;
+  taxonomicGroup?: string[];
+  taxonomicLevelClass?: string;
+  taxonomicLevelDomain?: string;
+  taxonomicLevelFamily?: string;
+  taxonomicLevelGenus?: string;
+  taxonomicLevelOrder?: string;
+  taxonomicLevelPhylum?: string;
+  taxonomicLevelSpecies?: string;
+  ucscBrowserUrl?: string;
+}
+
+export interface CatalogSearchResponse {
+  filters_applied: CatalogSearchFilter[];
+  message: string;
+  results: CatalogAssembly[];
+  session_id: string;
+  success: boolean;
+  total_count: number;
+  turn_count: number;
+}
+
+export interface CatalogHealthResponse {
+  agent_available: boolean;
+  assembly_count: number;
+  catalog_loaded: boolean;
+  organism_count: number;
+  status: string;
+}
