@@ -13,6 +13,7 @@ _llm_service = None
 _ena_service = None
 _rate_limiter = None
 _catalog_search_service = None
+_ena_search_service = None
 
 
 async def get_cache_service() -> CacheService:
@@ -89,6 +90,21 @@ async def get_catalog_search_service():
     return _catalog_search_service
 
 
+async def get_ena_search_service():
+    """Dependency to get ENA search service singleton instance"""
+    global _ena_search_service
+    if _ena_search_service is None:
+        from app.services.ena_search import ENASearchService
+
+        ena_service = await get_ena_service()
+        _ena_search_service = ENASearchService(ena_service)
+        available = _ena_search_service.is_available()
+        logger.info(
+            f"ENA search service initialized (singleton), available: {available}"
+        )
+    return _ena_search_service
+
+
 def reset_cache_service() -> None:
     """Reset the global cache service instance (used during shutdown)"""
     global _cache_service
@@ -102,9 +118,11 @@ def reset_all_services() -> None:
         _llm_service, \
         _ena_service, \
         _rate_limiter, \
-        _catalog_search_service
+        _catalog_search_service, \
+        _ena_search_service
     _cache_service = None
     _llm_service = None
     _ena_service = None
     _rate_limiter = None
     _catalog_search_service = None
+    _ena_search_service = None

@@ -4,11 +4,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1 import cache, catalog, ena, health, links, llm, version
+from app.api.v1 import cache, catalog, ena, ena_search, health, links, llm, version
 from app.core.config import get_settings
 from app.core.dependencies import (
     get_cache_service,
     get_catalog_search_service,
+    get_ena_search_service,
     get_ena_service,
     get_llm_service,
     reset_all_services,
@@ -30,6 +31,7 @@ async def lifespan(app: FastAPI):
     await get_llm_service()
     await get_ena_service()
     await get_catalog_search_service()
+    await get_ena_search_service()
     logger.info("All services initialized")
 
     yield
@@ -65,6 +67,7 @@ app.include_router(links.router, prefix="/api/v1", tags=["links"])
 app.include_router(llm.router, prefix="/api/v1/llm", tags=["llm"])
 app.include_router(ena.router, prefix="/api/v1/ena", tags=["ena"])
 app.include_router(catalog.router, prefix="/api/v1/catalog", tags=["catalog"])
+app.include_router(ena_search.router, prefix="/api/v1/ena-search", tags=["ena-search"])
 
 
 @app.get("/")
