@@ -161,6 +161,12 @@ export interface UserMeResponse {
   sub: string;
 }
 
+export interface FavoriteResponse {
+  created_at: string;
+  entity_id: string;
+  entity_type: string;
+}
+
 export interface UnifiedSearchResponse {
   datasets?: {
     cached: boolean;
