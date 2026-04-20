@@ -12,17 +12,31 @@ import {
   TwoPanelLayout,
 } from "./assistantView.styles";
 
-export const AssistantView = (): JSX.Element => {
+interface Props {
+  initialSavedAnalysisId?: string;
+  initialSessionId?: string;
+}
+
+export const AssistantView = ({
+  initialSavedAnalysisId,
+  initialSessionId,
+}: Props): JSX.Element => {
   const isAssistantEnabled = useFeatureFlag("assistant");
   const {
     error,
     handoffUrl,
     loading,
     messages,
+    saveAnalysis,
+    saveLoading,
+    saveMessage,
     schema,
     sendMessage,
     suggestions,
-  } = useAssistantChat();
+  } = useAssistantChat({
+    initialSavedAnalysisId,
+    initialSessionId,
+  });
 
   if (!isAssistantEnabled) return <Error statusCode={404} />;
 
@@ -40,7 +54,10 @@ export const AssistantView = (): JSX.Element => {
               error={error}
               loading={loading}
               messages={messages}
+              onSave={saveAnalysis}
               onSend={sendMessage}
+              saveLabel={saveMessage}
+              saveLoading={saveLoading}
               suggestions={suggestions}
             />
           </ChatColumn>

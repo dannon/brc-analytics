@@ -14,6 +14,7 @@ from app.api.v1 import (
     health,
     links,
     llm,
+    saved_analyses,
     user,
     version,
 )
@@ -98,6 +99,11 @@ def create_app() -> FastAPI:
     app.include_router(assistant.router, prefix="/api/v1/assistant", tags=["assistant"])
     app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
     app.include_router(favorites.router, prefix="/api/v1/favorites", tags=["favorites"])
+    app.include_router(
+        saved_analyses.router,
+        prefix="/api/v1/saved_analyses",
+        tags=["saved_analyses"],
+    )
     app.include_router(user.router, prefix="/api/v1/user", tags=["user"])
 
     app.mount("/api/v1/mcp", mcp_app)

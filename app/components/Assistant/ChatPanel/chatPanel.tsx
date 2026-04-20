@@ -7,6 +7,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import { useAuth } from "../../../providers/authentication";
 import { SuggestionChip } from "../../../types/api";
 import { ChatMessage } from "../ChatMessage/chatMessage";
 import { SuggestionChips } from "../SuggestionChips/suggestionChips";
@@ -21,7 +22,10 @@ interface ChatPanelProps {
   error: string | null;
   loading: boolean;
   messages: ChatMessageDisplay[];
+  onSave: () => void;
   onSend: (message: string) => void;
+  saveLabel: string | null;
+  saveLoading: boolean;
   suggestions: SuggestionChip[];
 }
 
@@ -31,7 +35,10 @@ interface ChatPanelProps {
  * @param props.error - Error message to display
  * @param props.loading - Whether the assistant is processing
  * @param props.messages - Chat message history
+ * @param props.onSave - Callback to save the current chat
  * @param props.onSend - Callback to send a message
+ * @param props.saveLabel - Save status message
+ * @param props.saveLoading - Whether a save request is in flight
  * @param props.suggestions - Suggestion chips to display
  * @returns Chat panel element
  */
@@ -39,9 +46,18 @@ export const ChatPanel = ({
   error,
   loading,
   messages,
+  onSave,
   onSend,
+  saveLabel,
+  saveLoading,
   suggestions,
 }: ChatPanelProps): JSX.Element => {
+  const {
+    isAuthenticated,
+    isConfigured,
+    isLoading: isAuthLoading,
+    login,
+  } = useAuth();
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -69,6 +85,21 @@ export const ChatPanel = ({
       onSend(message);
     }
   };
+
+  const handleSave = (): void => {
+    if (isConfigured && !isAuthLoading && !isAuthenticated) {
+      login();
+      return;
+    }
+    onSave();
+  };
+
+  let saveButtonLabel = "Save";
+  if (saveLoading) {
+    saveButtonLabel = "Saving...";
+  } else if (isConfigured && !isAuthenticated) {
+    saveButtonLabel = "Sign In to Save";
+  }
 
   return (
     <ChatContainer>
@@ -111,6 +142,15 @@ export const ChatPanel = ({
       />
 
       <InputRow>
+        <Button
+          disabled={
+            loading || saveLoading || messages.length === 0 || isAuthLoading
+          }
+          onClick={handleSave}
+          variant="outlined"
+        >
+          {saveButtonLabel}
+        </Button>
         <TextField
           disabled={loading}
           fullWidth
@@ -130,6 +170,13 @@ export const ChatPanel = ({
           Send
         </Button>
       </InputRow>
+      {saveLabel && (
+        <Box sx={{ pb: 2, px: 2 }}>
+          <Typography color="text.secondary" variant="body2">
+            {saveLabel}
+          </Typography>
+        </Box>
+      )}
     </ChatContainer>
   );
 };

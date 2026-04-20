@@ -167,6 +167,26 @@ export interface FavoriteResponse {
   entity_type: string;
 }
 
+export interface SavedAnalysisSummary {
+  created_at: string;
+  id: string;
+  source_session: string | null;
+  title: string | null;
+  updated_at: string;
+}
+
+export interface SavedAnalysisDetail extends SavedAnalysisSummary {
+  messages: Array<{
+    content: string;
+    role: "user" | "assistant";
+  }>;
+  schema: AnalysisSchema;
+}
+
+export interface SavedAnalysisRestoreResponse {
+  session_id: string;
+}
+
 export interface UnifiedSearchResponse {
   datasets?: {
     cached: boolean;
