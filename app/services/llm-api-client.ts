@@ -12,6 +12,7 @@ import {
 } from "../types/api";
 
 const apiClient = ky.create({
+  credentials: "include",
   hooks: {
     beforeError: [
       (error): HTTPError => {
