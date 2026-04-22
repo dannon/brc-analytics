@@ -7,6 +7,7 @@ import logging
 import re
 import time
 from typing import Any, Dict, List, Optional
+from urllib.parse import urlencode
 
 from pydantic_ai import Agent, RunContext, Tool
 from pydantic_ai.messages import ModelMessage, ModelMessagesTypeAdapter
@@ -50,6 +51,10 @@ logger = logging.getLogger(__name__)
 # ~20 turn-pairs; tool-heavy turns produce 3-5 messages each, so this
 # bounds total context while preserving good conversational continuity.
 MAX_HISTORY_MESSAGES = 40
+
+
+def _format_trs_id_for_url(trs_id: str) -> str:
+    return re.sub(r"[^a-zA-Z0-9]", "-", trs_id.removeprefix("#"))
 
 SYSTEM_PROMPT = """\
 You are the BRC Analytics Analysis Assistant, an expert in bioinformatics \
@@ -401,7 +406,11 @@ class AssistantAgent:
             accession = schema_state.assembly.detail or ""
             trs_id = schema_state.workflow.detail or ""
             if accession and trs_id:
-                handoff_url = f"/data/assemblies/{accession}/{trs_id}"
+                handoff_url = (
+                    f"/data/assemblies/{accession}/"
+                    f"{_format_trs_id_for_url(trs_id)}?"
+                    f"{urlencode({'assistantSessionId': state.session_id})}"
+                )
         is_complete = handoff_url is not None
 
         return ChatResponse(

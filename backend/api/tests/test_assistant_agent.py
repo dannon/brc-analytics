@@ -1,6 +1,7 @@
 """Tests for AssistantAgent parsing and schema update logic."""
 
-from unittest.mock import MagicMock
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from pydantic_ai.messages import (
@@ -14,8 +15,11 @@ from pydantic_ai.messages import (
 
 from app.models.assistant import (
     AnalysisSchema,
+    ChatMessage,
     FieldStatus,
+    MessageRole,
     SchemaField,
+    SessionState,
     SuggestionChip,
 )
 from app.services.assistant_agent import MAX_HISTORY_MESSAGES, AssistantAgent
@@ -319,3 +323,62 @@ class TestTruncateHistory:
     def test_empty_history(self, agent):
         result = AssistantAgent._truncate_history([])
         assert result == []
+
+
+@pytest.mark.asyncio
+async def test_chat_handoff_url_carries_assistant_session_id(agent):
+    state = SessionState(
+        session_id="assistant-session-123",
+        schema_state=AnalysisSchema(),
+        messages=[],
+    )
+
+    agent.agent = object()
+    agent.session_service = SimpleNamespace(
+        create_session=AsyncMock(return_value=state),
+        require_session=AsyncMock(),
+        save_session=AsyncMock(),
+    )
+    agent._run_agent_with_retry = AsyncMock(
+        return_value=SimpleNamespace(
+            output=(
+                "Ready to go.\n"
+                'SCHEMA_UPDATE: {"organism": "Plasmodium falciparum", '
+                '"assembly": "GCF_000001405.40", '
+                '"analysis_type": "Variant calling", '
+                '"workflow": "Haploid variant workflow (varcall-haploid)", '
+                '"data_source": "ENA", '
+                '"data_characteristics": "Paired-end reads"}'
+            ),
+            usage=lambda: SimpleNamespace(
+                input_tokens=1,
+                output_tokens=1,
+                requests=1,
+                tool_calls=0,
+                total_tokens=2,
+            ),
+            all_messages=lambda: [],
+        )
+    )
+    agent.catalog.workflows_by_category = [
+        {
+            "category": "VARIANT_CALLING",
+            "workflows": [
+                {
+                    "iwcId": "varcall-haploid",
+                    "trsId": "#workflow/github.com/iwc/varcall-haploid/main",
+                }
+            ],
+        }
+    ]
+
+    response = await agent.chat("Help me configure this analysis")
+
+    assert response.is_complete is True
+    assert (
+        response.handoff_url
+        == "/data/assemblies/GCF_000001405.40/workflow-github-com-iwc-varcall-haploid-main?assistantSessionId=assistant-session-123"
+    )
+    assert state.messages[-1] == ChatMessage(
+        role=MessageRole.ASSISTANT, content="Ready to go."
+    )
