@@ -132,6 +132,7 @@ async def _run_one(
     judge_model,
     only: list[str] | None,
     repeat: int,
+    max_concurrency: int | None,
 ) -> RunResult:
     build = SPECS[dataset_name]
     # Fresh cache per run so LLMService's content-keyed entries can't be served
@@ -145,6 +146,7 @@ async def _run_one(
         task,
         name=f"{dataset_name}@{model_name}",
         repeat=repeat,
+        max_concurrency=max_concurrency,
         progress=False,
     )
     elapsed = time.time() - started
@@ -223,6 +225,7 @@ async def _amain(args) -> int:
                     judge_model,
                     only,
                     args.repeat,
+                    args.max_concurrency,
                 )
             except DatasetRequirementError as exc:
                 # Precondition (e.g. SRA_MIRROR_PATH) is model-independent, so
@@ -267,6 +270,13 @@ def main() -> int:
     )
     parser.add_argument(
         "--repeat", type=int, default=1, help="repeat each case N times (default: 1)"
+    )
+    parser.add_argument(
+        "--max-concurrency",
+        type=int,
+        default=None,
+        help="cap concurrent agent runs (default: unbounded). Use a low value "
+        "(e.g. 4) for rate-limited endpoints like the TACC proxy to avoid 429s.",
     )
     parser.add_argument(
         "--only",
