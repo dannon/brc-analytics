@@ -50,9 +50,25 @@ models:
   # registry for other datasets but is out of scope for structured_channel --
   # its TACC serving stack 400s on our mixed tool+trailer output; see the
   # findings note in evals/results/.)
+  #
+  # DeepSeek-V3.2 (added 2026-08-06). tacc-inference probes: 4/4 hard tool-use,
+  # emits the recursive Custom Tool schema cleanly, reasons inline (no
+  # reasoning_content / <think>). Confirmed on structured_channel 2026-08-06
+  # (repeat 3): runs the extraction pass typed-only -- Extract/Reply/NoLeak all
+  # 1.00, on par with MiniMax-M2.7 on end-state correctness (FinalSchemaContains
+  # 0.75). Trade-offs vs MiniMax: a touch higher CaptureOnChange (0.88 vs 0.79)
+  # but lower SchemaFieldEmpty (0.75 vs 1.00 -- over-captures cleared fields), and
+  # noticeably slower + more 429-prone on TACC. A viable co-primary, not a clear
+  # upgrade over MiniMax for this surface.
   MiniMax-M2.7:
     provider: openai-compatible
     model: MiniMax-M2.7
+    base_url: https://ai.tejas.tacc.utexas.edu/v1
+    api_key_env: TACC_API_KEY
+
+  DeepSeek-V3.2:
+    provider: openai-compatible
+    model: DeepSeek-V3.2
     base_url: https://ai.tejas.tacc.utexas.edu/v1
     api_key_env: TACC_API_KEY
 
