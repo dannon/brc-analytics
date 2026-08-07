@@ -60,6 +60,13 @@ models:
   # but lower SchemaFieldEmpty (0.75 vs 1.00 -- over-captures cleared fields), and
   # noticeably slower + more 429-prone on TACC. A viable co-primary, not a clear
   # upgrade over MiniMax for this surface.
+  #
+  # On the tool-choice datasets (tool_selection + catalog_query, 2026-08-07 repeat 3)
+  # it does edge ahead: 8/8 tool-call match and 0.90 query-shape, top-or-tied on both
+  # and the only model with no per-case zeros (all three fail facets_organisms_broad_fungi
+  # -- a shared prompt/grader floor, not a model gap). Still ~4x slower on TACC than
+  # MiniMax / gpt-oss. Net: a slight accuracy edge where tool choice matters, paid for
+  # in latency -- speed vs a 1-2 case correctness gap is the real tiebreaker.
   MiniMax-M2.7:
     provider: openai-compatible
     model: MiniMax-M2.7
