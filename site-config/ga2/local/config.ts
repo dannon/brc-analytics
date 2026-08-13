@@ -20,10 +20,18 @@ const APP_TITLE = "Genome Ark 2";
 const BROWSER_URL = LOCALHOST;
 const GIT_HUB_REPO_URL = "https://github.com/galaxyproject/ga2";
 
+// Login UI is gated by a build-time env var so deployments (the playbook) flip
+// it per environment without an app-code change. Defaults off when unset.
+// Before flipping this on for a GA2 environment, note that GA2 still needs a
+// Keycloak client provisioned and a header account control -- BRC's AuthButton
+// links to /data/favorites and /account/*, which GA2 doesn't have.
+const LOGIN_ENABLED = process.env.NEXT_PUBLIC_LOGIN_ENABLED === "true";
+
 /**
  * Make site config object.
  * @param browserUrl - Browser URL.
  * @param gitHubUrl - GitHub URL.
+ * @param loginEnabled - Whether login-gated features are shown.
  * @remarks
  * The `genomeEntityConfig` is typecast to `EntityConfig<GA2AssemblyEntity>`
  * because the `SiteConfig` interface from the `@databiosphere/findable-ui` package expects
@@ -37,7 +45,8 @@ const GIT_HUB_REPO_URL = "https://github.com/galaxyproject/ga2";
  */
 export function makeConfig(
   browserUrl: string,
-  gitHubUrl = GIT_HUB_REPO_URL
+  gitHubUrl = GIT_HUB_REPO_URL,
+  loginEnabled = LOGIN_ENABLED
 ): AppSiteConfig {
   return {
     appTitle: APP_TITLE,
@@ -84,6 +93,7 @@ export function makeConfig(
         ],
       },
     },
+    loginEnabled,
     maxReadRunsForBrowseAll: 80000,
     redirectRootToPath: "/",
     supportUrl: SUPPORT_URL,
