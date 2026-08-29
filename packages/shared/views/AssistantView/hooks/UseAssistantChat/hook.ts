@@ -71,6 +71,10 @@ export const useAssistantChat = ({
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const sessionIdRef = useRef<string | null>(initialSessionId ?? null);
   const sendingRef = useRef(false);
+  // Set once this mount has opened a Logan-bound session. Dropping the
+  // ?loganJob= param re-renders the page without it, which would otherwise
+  // re-arm the restore effect against the id we just wrote.
+  const loganOpenedRef = useRef(false);
   const router = useRouter();
 
   // Hydrate from either an explicit initialSessionId (URL param, set by the
@@ -79,7 +83,7 @@ export const useAssistantChat = ({
   // (handoff_url, is_complete, suggestions), not just messages + schema.
   useEffect(() => {
     // A Logan job opens its own session below and outranks both sources.
-    if (initialLoganJobId) return;
+    if (initialLoganJobId || loganOpenedRef.current) return;
     const sourceId = initialSessionId ?? localStorage.getItem(sessionKey);
     if (!sourceId) return;
 
@@ -158,6 +162,7 @@ export const useAssistantChat = ({
       .then((created) => {
         if (cancelled) return;
         sessionIdRef.current = created.session_id;
+        loganOpenedRef.current = true;
         localStorage.setItem(sessionKey, created.session_id);
         setMessages(created.messages);
         setSchema(created.schema_state);
@@ -243,6 +248,7 @@ export const useAssistantChat = ({
       assistantAPIClient.assistantDeleteSession(oldId).catch(() => {});
     }
     sessionIdRef.current = null;
+    loganOpenedRef.current = false;
     localStorage.removeItem(sessionKey);
     // Drop ?sessionId= as well. It outranks localStorage on mount, so leaving it
     // means a reload restores the conversation we just walked away from and
