@@ -18,9 +18,12 @@ const Page = (): JSX.Element => {
   const { query } = useRouter();
   const initialSessionId =
     typeof query.sessionId === "string" ? query.sessionId : undefined;
+  const initialLoganJobId =
+    typeof query.loganJob === "string" ? query.loganJob : undefined;
 
   return (
     <AssistantView
+      initialLoganJobId={initialLoganJobId}
       initialSessionId={initialSessionId}
       introText={INTRO_TEXT}
       sessionKey={SESSION_KEY}
