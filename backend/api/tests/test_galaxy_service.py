@@ -261,6 +261,51 @@ class TestJobStatusStates:
         service.gi.datasets.show_dataset.assert_not_called()
 
     @pytest.mark.asyncio
+    async def test_a_paused_job_is_reported_as_an_error_with_the_quota(
+        self, service, caplog
+    ):
+        # Galaxy pauses an over-quota user's jobs; for the shared service
+        # account that silently fails every search, so it has to reach Sentry.
+        service.gi.jobs.show_job = MagicMock(return_value=self._job("paused"))
+        service.gi.users.get_current_user = MagicMock(
+            return_value={"quota_percent": 100.0}
+        )
+
+        with caplog.at_level(logging.ERROR, logger="app.services.galaxy_service"):
+            await service.get_job_status("job1")
+
+        errors = [r for r in caplog.records if r.levelno >= logging.ERROR]
+        assert len(errors) == 1
+        assert "paused" in errors[0].getMessage()
+        assert "100.0%" in errors[0].getMessage()
+
+    @pytest.mark.asyncio
+    async def test_a_paused_job_already_reported_is_not_reported_again(
+        self, service, caplog
+    ):
+        service.cache.claim = AsyncMock(return_value=False)
+        service.gi.jobs.show_job = MagicMock(return_value=self._job("paused"))
+
+        with caplog.at_level(logging.ERROR, logger="app.services.galaxy_service"):
+            await service.get_job_status("job1")
+
+        assert not [r for r in caplog.records if r.levelno >= logging.ERROR]
+        service.gi.users.get_current_user.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_a_paused_job_is_reported_even_if_the_quota_read_fails(
+        self, service, caplog
+    ):
+        service.gi.jobs.show_job = MagicMock(return_value=self._job("paused"))
+        service.gi.users.get_current_user = MagicMock(side_effect=RuntimeError("429"))
+
+        with caplog.at_level(logging.ERROR, logger="app.services.galaxy_service"):
+            status = await service.get_job_status("job1")
+
+        assert status.state == "paused"
+        assert [r for r in caplog.records if r.levelno >= logging.ERROR]
+
+    @pytest.mark.asyncio
     async def test_a_status_poll_logs_nothing_at_info(self, service, caplog):
         # Every search polls every three seconds, and the job dict carries the
         # tool's parameters.

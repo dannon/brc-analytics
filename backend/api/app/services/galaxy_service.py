@@ -2079,6 +2079,9 @@ class GalaxyService:
                 status.is_successful,
             )
 
+            if state == GalaxyJobState.PAUSED:
+                await self._report_paused_job(job_id, job_data)
+
             # Only a successful job's outputs are ever read. Hand over the job
             # dict already fetched above rather than making _get_job_outputs
             # re-fetch it.
@@ -2102,6 +2105,34 @@ class GalaxyService:
         except Exception as e:
             logger.error(f"BioBLEND error getting job status: {e}")
             raise Exception(f"Failed to get job status using BioBLEND: {str(e)}") from e
+
+    async def _report_paused_job(self, job_id: str, job_data: dict) -> None:
+        """Raise a Sentry error the first time a service-account job is seen paused.
+
+        Galaxy pauses a job when its user is over quota or an input errored.
+        For the shared service account that means every search is failing, and
+        the pause is otherwise invisible: it reads as an ordinary failed job.
+        """
+        marker = self.cache.make_key("galaxy:paused_reported", {"job_id": job_id})
+        # Paused isn't settled, so it's re-fetched every few seconds while
+        # anything polls; report it once rather than once per poll.
+        if not await self.cache.claim(marker, CacheTTL.ONE_DAY):
+            return
+
+        quota_percent = None
+        try:
+            user = await asyncio.to_thread(self.gi.users.get_current_user)
+            quota_percent = user.get("quota_percent")
+        except Exception as e:
+            logger.warning(f"Could not read Galaxy quota for paused job {job_id}: {e}")
+
+        logger.error(
+            "Galaxy paused service-account job %s (tool %s, quota used %s%%, info %r)",
+            job_id,
+            job_data.get("tool_id"),
+            quota_percent,
+            job_data.get("info"),
+        )
 
     async def get_job_results(self, job_id: str) -> GalaxyJobResult:
         """Get the complete results from a finished Galaxy job."""
